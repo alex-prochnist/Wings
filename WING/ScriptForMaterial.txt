@@ -1,0 +1,324 @@
+﻿IF OBJECT_ID('D16','U') IS NOT NULL
+	DROP TABLE D16;
+CREATE TABLE D16 (Id_D16 INT IDENTITY(1,1) PRIMARY KEY,
+				  Stress_D16 FLOAT NOT NULL,
+				  Strain_D16 FLOAT NOT NULL,
+				  Stress_D16FFZ FLOAT,
+				  Strain_D16FFZ FLOAT);
+
+IF OBJECT_ID('HGSA30_1800','U') IS NOT NULL
+	DROP TABLE HGSA30_1800;
+CREATE TABLE HGSA30_1800 (Id_HGSA30_1800 INT IDENTITY(1,1) PRIMARY KEY,
+						  Stress_HGSA30_1800 FLOAT NOT NULL,
+						  Strain_HGSA30_1800 FLOAT NOT NULL,
+						  Stress_HGSA30_1800FFZ FLOAT NOT NULL,
+						  Strain_HGSA30_1800FFZ FLOAT NOT NULL);
+
+IF OBJECT_ID('HGSA30_1600','U') IS NOT NULL
+	DROP TABLE HGSA30_1600;
+CREATE TABLE HGSA30_1600 (Id_HGSA30_1600 INT IDENTITY(1,1) PRIMARY KEY,
+						  Stress_HGSA30_1600 FLOAT NOT NULL,
+						  Strain_HGSA30_1600 FLOAT NOT NULL,
+						  Stress_HGSA30_1600FFZ FLOAT NOT NULL,
+						  Strain_HGSA30_1600FFZ FLOAT NOT NULL);
+
+IF OBJECT_ID('D16T','U') IS NOT NULL
+	DROP TABLE D16T;
+CREATE TABLE D16T (Id_D16T INT IDENTITY(1,1) PRIMARY KEY,
+				   Stress_D16T FLOAT NOT NULL,
+				   Strain_D16T FLOAT NOT NULL,
+				   Stress_D16TFFZ FLOAT NOT NULL,
+				   Strain_D16TFFZ FLOAT NOT NULL);
+
+IF OBJECT_ID('V95','U') IS NOT NULL
+	DROP TABLE V95;
+CREATE TABLE V95 (Id_V95 INT IDENTITY(1,1) PRIMARY KEY,
+				  Stress_V95 FLOAT NOT NULL,
+				  Strain_V95 FLOAT NOT NULL,
+				  Stress_V95FFZ FLOAT NOT NULL,
+				  Strain_V95FFZ FLOAT NOT NULL);
+
+DECLARE @NULL_PROP AS INT, @PROP_TEKUCH AS INT, @TEKUCH_PROCH AS INT--ОБЩИЕ ПЕРЕМЕННЫЕ (СЧЕТЧЕКИ), 
+--ЗНАЧЕНИЯ МЕНЯЮТЬСЯ В ЗАВИСИМОСТИ ОТ ИСПОЛЬЗУЕМОГО МАТЕРИАЛА 
+--НАПРИМЕР ДЛЯ Д16Т ОНИ СОСТАВЯТ 698 48 254 В ИТОГЕ - 1000 ЭЛЕМЕНТОВ, ДЛЯ БОЛЬШОЙ ТОЧНОСТИ
+
+DECLARE @Stress_D16T AS FLOAT, @Strain_D16T AS FLOAT, @Stress_D16TFFZ AS FLOAT, @Strain_D16TFFZ AS FLOAT
+
+SET @Stress_D16T = 0.55;
+
+--ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ НУЛЯ ДО ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДЛЯ Д16Т
+SET @Strain_D16T = 0.0000075
+SET @NULL_PROP = 698
+
+DECLARE @TMP_STRESS AS FLOAT, @TMP_STRAIN AS FLOAT, @TMP_STRAINFFZ AS FLOAT
+SET @TMP_STRESS = @Stress_D16T--ШАГ ДЛЯ ФФЗ ПО НАПРЯЖЕНИЮ ИДЕНТИЧЕН ШАГУ ДЛЯ МАТЕРИАЛА ПОЭТОМУ ПЕРЕМЕННАЯ
+--ПОДХОДИТ И ДЛЯ ЗАПОЛНЕНИЯ ПОЛЯ ПО ФФЗ
+SET @TMP_STRAIN = @Strain_D16T
+SET @TMP_STRAINFFZ = 0.0001--ПОСТОЯННОЕ ЗНАЧЕНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ФФЗ
+
+WHILE @NULL_PROP > 0
+ BEGIN
+	INSERT INTO D16T(Stress_D16T, Strain_D16T, Stress_D16TFFZ, Strain_D16TFFZ) 
+			 VALUES(@TMP_STRESS, @Strain_D16T, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16T
+	SET @Strain_D16T = @Strain_D16T + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @NULL_PROP = @NULL_PROP - 1
+ END;
+
+ --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДО ПРЕДЕЛА ТЕКУЧЕСТИ ДЛЯ Д16Т
+SET @PROP_TEKUCH = 48
+SET @TMP_STRAIN = 0.000118
+
+WHILE @PROP_TEKUCH > 0
+ BEGIN
+	INSERT INTO D16T(Stress_D16T, Strain_D16T, Stress_D16TFFZ, Strain_D16TFFZ) 
+			VALUES(@TMP_STRESS, @Strain_D16T, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16T
+	SET @Strain_D16T = @Strain_D16T + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @PROP_TEKUCH = @PROP_TEKUCH - 1
+ END;
+
+  --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ТЕКУЧЕСТИ ДО ПРЕДЕЛА ПРОЧНОСТИ ДЛЯ Д16Т
+SET @TEKUCH_PROCH = 254
+SET @TMP_STRAIN = 0.000355
+
+WHILE @TEKUCH_PROCH > 0
+ BEGIN
+	INSERT INTO D16T(Stress_D16T, Strain_D16T, Stress_D16TFFZ, Strain_D16TFFZ)
+			 VALUES(@TMP_STRESS, @Strain_D16T, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16T
+	SET @Strain_D16T = @Strain_D16T + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @TEKUCH_PROCH = @TEKUCH_PROCH - 1
+ END;
+
+ SELECT *
+ FROM D16T
+
+ -------------------------------------------------------------------------------------------------
+
+DECLARE @Stress_D16 AS FLOAT, @Strain_D16 AS FLOAT, @Stress_D16FFZ AS FLOAT, @Strain_D16FFZ AS FLOAT
+
+SET @Stress_D16 = 0.44;
+
+--ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ НУЛЯ ДО ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДЛЯ Д16
+SET @Strain_D16 = 0.0000062
+SET @NULL_PROP = 614
+
+SET @TMP_STRESS = @Stress_D16--ШАГ ДЛЯ ФФЗ ПО НАПРЯЖЕНИЮ ИДЕНТИЧЕН ШАГУ ДЛЯ МАТЕРИАЛА ПОЭТОМУ ПЕРЕМЕННАЯ
+--ПОДХОДИТ И ДЛЯ ЗАПОЛНЕНИЯ ПОЛЯ ПО ФФЗ
+SET @TMP_STRAIN = @Strain_D16
+SET @TMP_STRAINFFZ = 0.0001--ПОСТОЯННОЕ ЗНАЧЕНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ФФЗ
+
+WHILE @NULL_PROP > 0
+ BEGIN
+	INSERT INTO D16(Stress_D16, Strain_D16, Stress_D16FFZ, Strain_D16FFZ) 
+			 VALUES(@TMP_STRESS, @Strain_D16, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16
+	SET @Strain_D16 = @Strain_D16 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @NULL_PROP = @NULL_PROP - 1
+ END;
+
+ --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДО ПРЕДЕЛА ТЕКУЧЕСТИ ДЛЯ Д16
+SET @PROP_TEKUCH = 68
+SET @TMP_STRAIN = 0.0000093
+
+WHILE @PROP_TEKUCH > 0
+ BEGIN
+	INSERT INTO D16(Stress_D16, Strain_D16, Stress_D16FFZ, Strain_D16FFZ) 
+			VALUES(@TMP_STRESS, @Strain_D16, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16
+	SET @Strain_D16 = @Strain_D16 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @PROP_TEKUCH = @PROP_TEKUCH - 1
+ END;
+
+  --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ТЕКУЧЕСТИ ДО ПРЕДЕЛА ПРОЧНОСТИ ДЛЯ Д16
+SET @TEKUCH_PROCH = 318
+SET @TMP_STRAIN = 0.0003004
+
+WHILE @TEKUCH_PROCH > 0
+ BEGIN
+	INSERT INTO D16(Stress_D16, Strain_D16, Stress_D16FFZ, Strain_D16FFZ)
+			 VALUES(@TMP_STRESS, @Strain_D16, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_D16
+	SET @Strain_D16 = @Strain_D16 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @TEKUCH_PROCH = @TEKUCH_PROCH - 1
+ END;
+
+ SELECT *
+ FROM D16
+
+ ------------------------------------------------------------------------------------------------------
+
+DECLARE @Stress_HGSA30_1800 AS FLOAT, @Strain_HGSA30_1800 AS FLOAT, 
+@Stress_HGSA30_1800FFZ AS FLOAT, @Strain_HGSA30_1800FFZ AS FLOAT
+
+SET @Stress_HGSA30_1800 = 1.8;
+
+--ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ НУЛЯ ДО ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДЛЯ HGSA30_1800
+SET @Strain_HGSA30_1800 = 0.0000086
+SET @NULL_PROP = 805
+
+SET @TMP_STRESS = @Stress_HGSA30_1800--ШАГ ДЛЯ ФФЗ ПО НАПРЯЖЕНИЮ ИДЕНТИЧЕН ШАГУ ДЛЯ МАТЕРИАЛА ПОЭТОМУ ПЕРЕМЕННАЯ
+--ПОДХОДИТ И ДЛЯ ЗАПОЛНЕНИЯ ПОЛЯ ПО ФФЗ
+SET @TMP_STRAIN = @Strain_HGSA30_1800
+SET @TMP_STRAINFFZ = 0.00006--ПОСТОЯННОЕ ЗНАЧЕНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ФФЗ
+
+WHILE @NULL_PROP > 0
+ BEGIN
+	INSERT INTO HGSA30_1800(Stress_HGSA30_1800, Strain_HGSA30_1800, Stress_HGSA30_1800FFZ, Strain_HGSA30_1800FFZ) 
+			 VALUES(@TMP_STRESS, @Strain_HGSA30_1800, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1800
+	SET @Strain_HGSA30_1800 = @Strain_HGSA30_1800 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @NULL_PROP = @NULL_PROP - 1
+ END;
+
+ --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДО ПРЕДЕЛА ТЕКУЧЕСТИ ДЛЯ HGSA30_1800
+SET @PROP_TEKUCH = 106
+SET @TMP_STRAIN = 0.0000098
+
+WHILE @PROP_TEKUCH > 0
+ BEGIN
+	INSERT INTO HGSA30_1800(Stress_HGSA30_1800, Strain_HGSA30_1800, Stress_HGSA30_1800FFZ, Strain_HGSA30_1800FFZ) 
+			VALUES(@TMP_STRESS, @Strain_HGSA30_1800, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1800
+	SET @Strain_HGSA30_1800 = @Strain_HGSA30_1800 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @PROP_TEKUCH = @PROP_TEKUCH - 1
+ END;
+
+  --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ТЕКУЧЕСТИ ДО ПРЕДЕЛА ПРОЧНОСТИ ДЛЯ HGSA30_1800
+SET @TEKUCH_PROCH = 89
+SET @TMP_STRAIN = 0.0005858
+
+WHILE @TEKUCH_PROCH > 0
+ BEGIN
+	INSERT INTO HGSA30_1800(Stress_HGSA30_1800, Strain_HGSA30_1800, Stress_HGSA30_1800FFZ, Strain_HGSA30_1800FFZ)
+			 VALUES(@TMP_STRESS, @Strain_HGSA30_1800, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1800
+	SET @Strain_HGSA30_1800 = @Strain_HGSA30_1800 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @TEKUCH_PROCH = @TEKUCH_PROCH - 1
+ END;
+
+ SELECT *
+ FROM HGSA30_1800
+
+ -----------------------------------------------------------------------------------------
+
+DECLARE @Stress_HGSA30_1600 AS FLOAT, @Strain_HGSA30_1600 AS FLOAT, 
+@Stress_HGSA30_1600FFZ AS FLOAT, @Strain_HGSA30_1600FFZ AS FLOAT
+
+SET @Stress_HGSA30_1600 = 1.6;
+
+--ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ НУЛЯ ДО ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДЛЯ HGSA30_1600
+SET @Strain_HGSA30_1600 = 0.0000008
+SET @NULL_PROP = 775
+
+SET @TMP_STRESS = @Stress_HGSA30_1600--ШАГ ДЛЯ ФФЗ ПО НАПРЯЖЕНИЮ ИДЕНТИЧЕН ШАГУ ДЛЯ МАТЕРИАЛА ПОЭТОМУ ПЕРЕМЕННАЯ
+--ПОДХОДИТ И ДЛЯ ЗАПОЛНЕНИЯ ПОЛЯ ПО ФФЗ
+SET @TMP_STRAIN = @Strain_HGSA30_1600
+SET @TMP_STRAINFFZ = 0.00006--ПОСТОЯННОЕ ЗНАЧЕНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ФФЗ
+
+WHILE @NULL_PROP > 0
+ BEGIN
+	INSERT INTO HGSA30_1600(Stress_HGSA30_1600, Strain_HGSA30_1600, Stress_HGSA30_1600FFZ, Strain_HGSA30_1600FFZ) 
+			 VALUES(@TMP_STRESS, @Strain_HGSA30_1600, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1600
+	SET @Strain_HGSA30_1600 = @Strain_HGSA30_1600 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @NULL_PROP = @NULL_PROP - 1
+ END;
+
+ --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДО ПРЕДЕЛА ТЕКУЧЕСТИ ДЛЯ HGSA30_1600
+SET @PROP_TEKUCH = 93
+SET @TMP_STRAIN = 0.0000021
+
+WHILE @PROP_TEKUCH > 0
+ BEGIN
+	INSERT INTO HGSA30_1600(Stress_HGSA30_1600, Strain_HGSA30_1600, Stress_HGSA30_1600FFZ, Strain_HGSA30_1600FFZ) 
+			VALUES(@TMP_STRESS, @Strain_HGSA30_1600, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1600
+	SET @Strain_HGSA30_1600 = @Strain_HGSA30_1600 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @PROP_TEKUCH = @PROP_TEKUCH - 1
+ END;
+
+  --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ТЕКУЧЕСТИ ДО ПРЕДЕЛА ПРОЧНОСТИ ДЛЯ HGSA30_1600
+SET @TEKUCH_PROCH = 132
+SET @TMP_STRAIN = 0.0004511
+
+WHILE @TEKUCH_PROCH > 0
+ BEGIN
+	INSERT INTO HGSA30_1600(Stress_HGSA30_1600, Strain_HGSA30_1600, Stress_HGSA30_1600FFZ, Strain_HGSA30_1600FFZ)
+			 VALUES(@TMP_STRESS, @Strain_HGSA30_1600, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_HGSA30_1600
+	SET @Strain_HGSA30_1600 = @Strain_HGSA30_1600 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.00006
+	SET @TEKUCH_PROCH = @TEKUCH_PROCH - 1
+ END;
+
+ SELECT *
+ FROM HGSA30_1600
+
+ ------------------------------------------------------------------------------------------------
+
+DECLARE @Stress_V95 AS FLOAT, @Strain_V95 AS FLOAT, @Stress_V95FFZ AS FLOAT, @Strain_V95FFZ AS FLOAT
+
+SET @Stress_V95 = 0.617;
+
+--ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ НУЛЯ ДО ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДЛЯ V95
+SET @Strain_V95 = 0.0000086
+SET @NULL_PROP = 518
+
+SET @TMP_STRESS = @Stress_V95--ШАГ ДЛЯ ФФЗ ПО НАПРЯЖЕНИЮ ИДЕНТИЧЕН ШАГУ ДЛЯ МАТЕРИАЛА ПОЭТОМУ ПЕРЕМЕННАЯ
+--ПОДХОДИТ И ДЛЯ ЗАПОЛНЕНИЯ ПОЛЯ ПО ФФЗ
+SET @TMP_STRAIN = @Strain_V95
+SET @TMP_STRAINFFZ = 0.0001--ПОСТОЯННОЕ ЗНАЧЕНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ФФЗ
+
+WHILE @NULL_PROP > 0
+ BEGIN
+	INSERT INTO V95(Stress_V95, Strain_V95, Stress_V95FFZ, Strain_V95FFZ) 
+			 VALUES(@TMP_STRESS, @Strain_V95, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_V95
+	SET @Strain_V95 = @Strain_V95 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @NULL_PROP = @NULL_PROP - 1
+ END;
+
+ --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ПРОПОРЦИОНАЛЬНОСТИ ДО ПРЕДЕЛА ТЕКУЧЕСТИ ДЛЯ V95
+SET @PROP_TEKUCH = 370
+SET @TMP_STRAIN = 0.0000091
+
+WHILE @PROP_TEKUCH > 0
+ BEGIN
+	INSERT INTO V95(Stress_V95, Strain_V95, Stress_V95FFZ, Strain_V95FFZ) 
+			VALUES(@TMP_STRESS, @Strain_V95, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_V95
+	SET @Strain_V95 = @Strain_V95 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @PROP_TEKUCH = @PROP_TEKUCH - 1
+ END;
+
+  --ЗАПОЛНЕНИЕ ТАБЛИЦЫ В ЗОНЕ ОТ ПРЕДЕЛА ТЕКУЧЕСТИ ДО ПРЕДЕЛА ПРОЧНОСТИ ДЛЯ V95
+SET @TEKUCH_PROCH = 112
+SET @TMP_STRAIN = 0.0008244
+
+WHILE @TEKUCH_PROCH > 0
+ BEGIN
+	INSERT INTO V95(Stress_V95, Strain_V95, Stress_V95FFZ, Strain_V95FFZ)
+			 VALUES(@TMP_STRESS, @Strain_V95, @TMP_STRESS, @TMP_STRAINFFZ)
+	SET @TMP_STRESS = @TMP_STRESS + @Stress_V95
+	SET @Strain_V95 = @Strain_V95 + @TMP_STRAIN
+	SET @TMP_STRAINFFZ = @TMP_STRAINFFZ + 0.0001
+	SET @TEKUCH_PROCH = @TEKUCH_PROCH - 1
+ END;
+
+ SELECT *
+ FROM V95
